@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+    <h2>Buscar livro por ISB</h2>
+    <input type="text" id="isbInput">
+    <button onclick="searchBook()">Buscar</button>
+
+    <div id="result"></div>
+
+    <script>
+        async function featStatus(urn) {
+            try {
+                const response = await fetch(`http://localhost:3000/book/${urn}`);
+                const data = await response.json().catch(() => null);
+
+                await fetch(`http://localhost:3000/status-report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: response.status,
+                        url: response.url
+                    })
+                });
+                return { status: response.status, data };
+
+            } catch (error) {
+
+                console.log('Erro ao buscar o livro, erro: ', error);
+                return {
+                    status: 500,
+                    data: { message: 'error ao conectar no servidor' }
+                }
+            }
+        }
+
+        async function searchBook() {
+            const isbn = document.getElementById('isbInput').value.trim();
+            const resultDiv = document.getElementById('result');
+
+            if (!isbn) {
+                resultDiv.innerHTML = 'Por favor, digite um ISBN';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.innerHTML = 'Buscando....';
+            resultDiv.style.display = 'block';
+            const response = await featStatus(isbn);
+
+            if (response.status === 200) {
+                resultDiv.innerHTML = `
+                    Titulo: ${response.data.title}<br>
+                    Autor: ${response.data.author}<br>
+                    Ano: ${response.data.year}<br>
+                    URN: ${response.data.urn}<br>
+                `;
+            } else {
+                resultDiv.innerHTML = `Erro ${response.data.message}`;
+            }
+
+        }
+    </script>
+</body>
+
+</html>
